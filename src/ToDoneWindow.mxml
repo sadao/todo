@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	title="ToDone List"
+	width="510"
+	height="440"
+	showCloseButton="true"
+	close="closePopUp();"
+	creationComplete = "creationCompleteHandler()"
+>
+
+	<mx:Script>
+		<![CDATA[
+			import mx.managers.PopUpManager
+			import sprintf
+			
+			public function closePopUp() : void { PopUpManager.removePopUp( this ) }
+
+			[Bindable]
+			public var todoneText:Object
+			public function creationCompleteHandler() : void {
+				todoneText = getCurrentDate() + "\n---\n"
+				for each (var obj:Object in this.data) {
+					todoneText += obj.startTime + "- " + obj.text + "\n"
+				}
+			}
+
+			// 現在日を取得します
+			private function getCurrentDate() : String {
+				var currentDate:Date = new Date()
+				return sprintf( "%d/%d(%s)", (currentDate.getMonth() +1),  currentDate.getUTCDate(), getYoubiString(currentDate.day))
+			}
+
+			// 曜日の日本語を取得します
+			private function getYoubiString (day:Number) : String {
+				if (day == 0) { return '日' }
+				else if (day == 1) { return '月' }
+				else if (day == 2) { return '火' }
+				else if (day == 3) { return '水' }
+				else if (day == 4) { return '木' }
+				else if (day == 5) { return '金' }
+				else if (day == 6) { return '土' }
+				else { return '不明' }
+			}
+		]]>
+	</mx:Script>
+
+	<!-- Todone項目を表示する -->
+	<mx:TextArea id="todoneList" text="{todoneText}" width="480" height="390" fontSize="20"/>
+
+</mx:TitleWindow>  

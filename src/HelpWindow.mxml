@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	title="Help ToDo"
+	width="510"
+	height="440"
+	backgroundColor = "#FFFF66"
+	showCloseButton="true"
+	close="closePopUp();"
+>
+	<mx:Script>
+		<![CDATA[
+			import mx.managers.PopUpManager
+			import mx.events.ItemClickEvent
+			import mx.controls.TabBar
+			import mx.collections.ArrayCollection
+
+			// Close(右上の X 押したとき)のイベント
+			public function closePopUp() : void { PopUpManager.removePopUp( this ) }
+
+			[Bindable]
+			public var DEFAULT_TEXT : String = "とある１日のすること／したことを記録します。\n\n例えばこういった使い方です。\n１．帰宅前に「ToDo.swf」 を起動します。\n２．明日やることについて、やることと重要度と開始予定時間を登録します。\n３．結果、当日の作業確認時間が減り、作業漏れ防止にも繋がり生産性が向上します！\n＾－＾";
+
+			// タブリスト
+			[Bindable]
+			public var Tabs : Array = [
+				{label : "使い方", data : DEFAULT_TEXT},
+				{label : "すること関連", data : "すること、開始予定時間を記入し重要度を選択して登録してください！\n画面右側の重要度にマッチしたエリアにタスクが登録されます。\n\n繰り返しタスクを登録する場合は、\n１．すること登録\n２．リピートにドラッグ\n３．上部の「移動／編集タスクを保存」を押下してください！"},
+				{label : "したこと関連", data : "・したこと\n画面左下のエリアに完了したタスクが表示されます。\n画面右側のタスク(すること)を左クリックして終了することで、\n完了タスクとして画面左下にて登録されます。\nまた、画面右側のすることエリアからは削除されます。\n\n・[画面上部] したことを更新\n画面左下のしたことの各データを更新したらは、\n内部キャッシュに反映させるため「したことを更新」ボタンを押してください。\n\n・[画面上部] したことをポップアップ\n画面左下の全ての完了タスクを、今日の日付を加えてポップアップ表示します。\n日報用などにお使いください。"},
+				{label : "@niftyTimeLine", data : "したことリストを、@niftyTimeLine に投稿することができます！\nユーザ登録、タイムライン作成、仕事タグの作成まではご自身でお願いしますm(_ _)m"},
+				{label : "クリア関連", data : "・したことクリア\nしたこと情報を全てクリアします。\n\n・全クリア\h@niftyTimeLine以外の情報を全てクリアします。\n\n一度クリアした情報は復元できませんので注意してください。"}
+			];
+
+			// タブ click 時のイベント
+			private function clickTab(event:ItemClickEvent):void {
+				// Access target TabBar control.
+				var targetComp:TabBar = TabBar(event.currentTarget)
+				forClick.text = targetComp.dataProvider[event.index].data
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Label width="100%" color="#000066" text="ToDo管理Flash のヘルプ画面です。"/>
+	<mx:TabBar itemClick="clickTab(event);">
+		<mx:dataProvider>{Tabs}</mx:dataProvider>
+	</mx:TabBar>
+
+	<mx:TextArea id="forClick" height="100%" width="100%" backgroundColor="#FFFFCC" text="{DEFAULT_TEXT}"/>
+</mx:TitleWindow>  

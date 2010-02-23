@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	title="@nifty TimeLine"
+	width="510"
+	height="440"
+	showCloseButton="true"
+	close="closePopUp();"
+	creationComplete = "creationCompleteHandler()"
+>
+
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection
+			import mx.controls.Alert
+			import mx.managers.PopUpManager
+			import mx.messaging.messages.HTTPRequestMessage
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.mxml.HTTPService
+			import cache.TimeLine
+			import cache.Todone
+			import sprintf
+
+
+			// ポップアップをクローズZEROパートⅡ
+			public function closePopUp() : void { PopUpManager.removePopUp( this ) }
+
+			// 初期処理
+			private var confirm_nifty_timeline_api : HTTPService = new HTTPService
+			private var post_nifty_timeline_api : HTTPService = new HTTPService
+			private static const NIFTY_TIMELINE_GET_URL : String = 'http://api.timeline.nifty.com/api/v1/timelines/show/' 
+			private static const NIFTY_TIMELINE_POST_URL : String = 'http://api.timeline.nifty.com/api/v1/articles/create'
+			public function creationCompleteHandler() : void {
+				// マウスイベントを登録
+				registerAPI.addEventListener(MouseEvent.CLICK, registerAPIHandler)
+				removeAPI.addEventListener(MouseEvent.CLICK, removeAPIHandler)
+
+				// APIの初期設定
+				// API通信確認用
+				confirm_nifty_timeline_api.method = HTTPRequestMessage.POST_METHOD
+				confirm_nifty_timeline_api.resultFormat = 'object'
+				confirm_nifty_timeline_api.url = ''
+				confirm_nifty_timeline_api.useProxy = false
+				confirm_nifty_timeline_api.addEventListener( ResultEvent.RESULT, confirmAPIResult )
+
+				// 投稿用
+				post_nifty_timeline_api.method = HTTPRequestMessage.POST_METHOD
+				post_nifty_timeline_api.resultFormat = 'object'
+				post_nifty_timeline_api.url = NIFTY_TIMELINE_POST_URL
+				post_nifty_timeline_api.useProxy = false
+				post_nifty_timeline_api.addEventListener( ResultEvent.RESULT, postAPIResult )
+
+				// 表示内容を設定
+				setView()
+			}
+
+			// API 設定登録
+			private function registerAPIHandler(event:MouseEvent) : void {
+				// 設定内容をキャッシュに反映
+				var cacheTimeLine : TimeLine = new cache.TimeLine()
+				cacheTimeLine.setID( timeline_id.text )
+				cacheTimeLine.setApiKey( api_key.text )
+
+				// 表示内容を更新
+				setView()
+
+				// メッセージ出力
+				apiResponse.htmlText = "設定を保存しました。\nタイムラインID：" + timeline_id.text + "\nAPIキー:" + api_key.text
+
+				return
+			}
+
+			// 設定クリア
+			private function removeAPIHandler(event:MouseEvent) : void {
+				// キャッシュをクリア
+				var cacheTimeLine : TimeLine = new cache.TimeLine()
+				cacheTimeLine.clear()
+
+				// 表示内容を更新
+				setView()
+
+				// メッセージ出力
+				apiResponse.htmlText = "タイムラインIDとAPIキーの設定をクリアしました。"
+
+				return
+			}
+
+			// 表示内容の設定
+			private function setView() : void {
+				var cacheTimeLine:TimeLine = new cache.TimeLine()
+				// タイムラインID
+				timeline_id.text = cacheTimeLine.getID()
+				// API KEY
+				api_key.text	 = cacheTimeLine.getApiKey()
+				// エンドポイント URI
+				confirm_nifty_timeline_api.url = NIFTY_TIMELINE_GET_URL + timeline_id.text
+				post_nifty_timeline_api
+				timeline_endpoint.text = confirm_nifty_timeline_api.url
+
+				return
+			}
+
+			// API通信確認結果の表示
+			private function confirmAPIResult(event:ResultEvent) : void {
+				apiResponse.htmlText = "API通信確認結果です。\ncode:" + event.result.response.status.code + "\nmessage:" + event.result.response.status.message
+				return
+			}
+			// API通信確認を実行
+			private function sendConfirm() : void {
+				// リクエストパラメータセット
+				var obj : Object = new Object()
+				obj.timeline_key = api_key.text
+
+				// API 実行
+				confirm_nifty_timeline_api.send( obj )
+			}
+
+			// API Post結果の表示
+			private function postAPIResult(event:ResultEvent) : void {
+				apiResponse.htmlText = "投稿結果です。\ncode:" + event.result.response.status.code + "\nmessage:" + event.result.response.status.message
+				return
+			}
+			// TimeLine に Post
+			private function postToDo() : void {
+				// リクエストパラメータセット
+				// 共通
+				var postObj : Object = new Object()
+				postObj.timeline_key = api_key.text
+				postObj.timeline_id = timeline_id.text
+				postObj.grade = '仕事' // 可変にするにはどんなＵＩがいいのかな
+
+				// ToDone リストを取得
+				var cacheTodone:Todone = new cache.Todone()
+				var todoneList : ArrayCollection = cacheTodone.getTodone()
+
+				// したことを投稿するよっ
+				for each (var todone:Object in todoneList) {
+					// set リクエストパラメータ
+					postObj.title = todone.text
+					postObj.description = todone.text
+					postObj.start_time = getCurrentTimestamp(todone.startTime)
+					postObj.end_time = getCurrentTimestamp(todone.endTime)
+
+					// post 実行
+					post_nifty_timeline_api.send( postObj )
+				}
+
+			}
+
+			// 日時を整形します
+			private function getCurrentTimestamp(min_second : String) : String {
+				var currentDate:Date = new Date()
+				return sprintf( "%04d-%02d-%02dT%d:00+09:00", 
+					(currentDate.getFullYear()), 
+					(currentDate.getMonth() +1), 
+					currentDate.getUTCDate(),
+					min_second )
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Form width="100%" height="100%">
+		<mx:Panel title="「したこと」を TimeLine に投稿しよう！" width="100%" height="30" backgroundColor="0xFFFF99" />
+
+		<!-- タイムラインのID -->
+		<mx:FormItem label="タイムラインID" required="true" direction="horizontal">
+			<mx:TextInput id="timeline_id" width="100" height="20" text="" />
+		</mx:FormItem>
+
+		<!-- APIキー -->
+		<mx:FormItem label="APIキー" required="true" direction="horizontal">
+			<mx:TextInput id="api_key" width="350" height="20" text="" />
+		</mx:FormItem>
+
+		<!-- タイムラインエンドポイント -->
+		<mx:FormItem label="エンドポイントURI" required="false" direction="horizontal">
+			<mx:TextInput id="timeline_endpoint" width="350" height="20" text="" editable="false" backgroundColor="0x999999"/>
+		</mx:FormItem>
+
+		<mx:HBox>
+
+		<!-- 登録ボタン -->
+		<mx:Button id="registerAPI" width="100" label="保存" fontSize="14" color="#993300"/>
+
+		<!-- 消去ボタン -->
+		<mx:Button id="removeAPI" width="100" label="クリア" fontSize="14" color="#993300"/>
+
+		<!-- 通信確認ボタン -->
+		<mx:Button id="confirmAPI" width="100" label="通信確認" fontSize="14" color="#993300" click="sendConfirm()"/>
+
+		<!-- 投稿 -->
+		<mx:Button id="postAPI" width="100" label="投稿" fontSize="14" color="#993300" click="postToDo()"/>
+
+		</mx:HBox>
+
+		<!-- 確認結果 -->
+		<mx:TextArea id="apiResponse" width="100%" height="100" htmlText="" />
+	</mx:Form>
+
+</mx:TitleWindow> 

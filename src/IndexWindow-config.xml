@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<flex-config>
+	<compiler>
+		<source-path>
+			<path-element>.</path-element>
+		</source-path>
+	</compiler>
+	<output>../bin/Todo.swf</output>
+</flex-config>

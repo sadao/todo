@@ -1,0 +1,153 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<mx:Application
+	xmlns:mx = "http://www.adobe.com/2006/mxml"
+	xmlns = "*"
+	width = "820"
+ 	height = "540"
+	paddingLeft = "0"
+	paddingRight = "0"
+	paddingTop = "0"
+	paddingBottom = "0"
+	horizontalScrollPolicy = "off"
+	verticalScrollPolicy = "off"
+	backgroundColor = "0xFFFF99"
+	layout = "absolute"
+	frameRate = "60"
+	creationComplete = "creationCompleteHandler()"
+>
+
+	<!-- 外部AS読込み -->
+	<mx:Script source="./Main.as" /> 
+	<mx:Script>
+		<![CDATA[
+	        [Bindable]
+	        private var currentDate:Date = new Date();
+
+			override protected function initializationComplete():void{ 
+				this.percentHeight = 900
+				this.percentWidth = 800
+			} 
+	    ]]>
+	</mx:Script>
+
+	<!-- 開始時間HHのバリデーター -->
+    <mx:NumberValidator id="timeHHValidator" source="{startTimeHH}" property="text" integerError="Enter Integer value"
+        minValue="0" maxValue="23" domain="int" 
+        trigger="{createTodo}" triggerEvent="click"/>
+
+	<!-- 開始時間MMのバリデーター -->
+    <mx:NumberValidator id="timeMMValidator" source="{startTimeMM}" property="text" integerError="Enter Integer value"
+        minValue="0" maxValue="59" domain="int" 
+        trigger="{createTodo}" triggerEvent="click"/>
+
+	<mx:ApplicationControlBar dock="true">
+		<!-- ヘルプ -->
+		<mx:Button id="helpTodo"  icon="@Embed('../assets/favicon.jpg')" click="toHelp()" width="30" height="10" color="#993300"/>
+
+		<!-- したこと一覧を今日の出来事風にポップアップします -->
+		<mx:Button id="popupTodone" label="したことをポップアップ" click="toTodoneText()" width="180" color="#993300"/>
+
+		<!-- @nifty TimeLineAPI を設定/投稿します -->
+		<mx:Button id="popupTimeLine" label="@nifty TimeLine" click="toTimeLine()" width="180" color="#993300"/>
+
+		<!-- リピート情報を最新情報に更新 -->
+		<mx:Button id="syncALL" label="移動／編集タスクを保存" click="syncAll()" width="180" color="#993300"/>
+
+		<!-- したこと 実&キャッシュデータをクリアします -->
+		<mx:Button id="clearToDone" label="したことクリア" click="clearTodone()" width="100" color="#993300"/>
+
+		<!-- 全ての 実&キャッシュデータをクリアします -->
+		<mx:Button id="clearALL" label="全クリア" click="clearAll()" width="100" color="#993300"/>
+
+	</mx:ApplicationControlBar> 
+
+	<!-- メイン -->
+	<mx:DividedBox direction="horizontal" width="100%" height="100%">
+		<mx:Panel title="今日する／したことを挙げよう！" width="25%" height="100%" backgroundColor="0xFFFF99">
+			<mx:VDividedBox width="100%" height="100%">
+				<mx:Panel title="することを登録します" width="100%" height="100%" backgroundColor="0xFFFF99">
+					<mx:Form width="100%" height="100%" defaultButton="{createTodo}">
+						<!-- すること -->
+						<mx:FormItem label="すること" required="true" direction="horizontal">
+							<mx:TextInput id="todoItem" width="200" height="25" text="{DEFAULT_TODO_STRING}" click="clickToDoHandler(event);" fontSize="14"/>
+						</mx:FormItem>
+
+						<!-- 開始時間 -->
+						<mx:FormItem label="開始時間(hh:mm)" required="true" direction="horizontal">
+							<mx:TextInput id="startTimeHH" width="30" height="20" text="{String(currentDate.hours)}" />
+							<mx:Label id="startTimeSeparater" width="10" height="20" text="：" />
+							<mx:TextInput id="startTimeMM" width="30" height="20" text="{String(currentDate.minutes)}" />
+							<mx:Button id="UpdateStartTime" width="60" label="更新" color="#993300" click="updateStartTime(event);"/>
+						</mx:FormItem>
+
+						<!-- 重要度 -->
+						<mx:FormItem label="重要度" required="true" direction="horizontal">
+						<mx:HBox borderStyle="solid" paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10">
+							<mx:RadioButtonGroup id="important"/>
+								<mx:RadioButton label="★★★" groupName="important" id="importantMax"    value="maximum" selected="true"/>
+								<mx:RadioButton label="★★"   groupName="important" id="importantMiddle" value="middle"/>
+								<mx:RadioButton label="★"	   groupName="important" id="importantMin"    value="minimum"/>
+							</mx:HBox>
+						</mx:FormItem>
+
+						<!-- 作成ボタン -->
+						<mx:Button id="createTodo" width="280" icon="@Embed('../assets/createButton.jpg')"  label="" fontSize="20" color="#993300"/>
+		   			</mx:Form>
+				</mx:Panel>
+				<mx:Panel title="したこと" width="100%" height="100%">
+					<!-- ToDoneリスト -->
+					<mx:DataGrid height="100%" width="100%" id="todoneData" dataProvider="{todoneList}" rowHeight="20" dragEnabled="false" dragMoveEnabled="false" dropEnabled="false" doubleClickEnabled="true" doubleClick="confirmTodone()" editable="true"  >
+						<mx:columns>
+							<mx:DataGridColumn dataField="startTime" headerText="開始時間" width="6"  backgroundColor="#FFCC00"/>
+							<mx:DataGridColumn dataField="endTime"   headerText="終了時間" width="6"  backgroundColor="#FFCC00"/>
+							<mx:DataGridColumn dataField="important" headerText="重要度"   width="4"  backgroundColor="#FFCC00"/>
+							<mx:DataGridColumn dataField="text"      headerText="したこと" width="20" backgroundColor="#FFCC00"/>
+						</mx:columns>
+					</mx:DataGrid>
+				</mx:Panel>
+			</mx:VDividedBox>
+		</mx:Panel>
+
+		<!-- Todoアイテムリストを表示する -->
+		<mx:Panel title="すること" width="25%" height="100%" backgroundColor="0xCCCCCC">
+			<mx:VDividedBox width="100%" height="100%">
+				<!-- 重要度【高】-->
+				<mx:Canvas id="_maxTodoList" width="100%" height="100%" >
+					<mx:DataGrid height="100%" width="100%" id="maximumData" dataProvider="{maximumTodoList}" rowHeight="22" dragEnabled="true" dragMoveEnabled="true" dropEnabled="true" click="confirmMaximumTodo()">
+						<mx:columns>
+							<mx:DataGridColumn dataField="text" headerText="★★★" backgroundColor="#FFFF66" fontSize="12" />
+						</mx:columns>
+					</mx:DataGrid>
+				</mx:Canvas>
+
+				<!-- 重要度【中】-->
+				<mx:Canvas id="_middleTodoList" width="100%" height="100%" >
+					<mx:DataGrid height="100%" width="100%" id="middleData" dataProvider="{middleTodoList}" rowHeight="22" dragEnabled="true" dragMoveEnabled="true" dropEnabled="true" click="confirmMiddleTodo()">
+						<mx:columns>
+							<mx:DataGridColumn dataField="text" headerText="★★" backgroundColor="#FFFF99" fontSize="12" />
+						</mx:columns>
+					</mx:DataGrid>
+				</mx:Canvas>
+
+				<!-- 重要度【低】-->
+				<mx:Canvas id="_minTodoList" width="100%" height="100%" >
+					<mx:DataGrid height="100%" width="100%" id="minimumData" dataProvider="{minimumTodoList}" rowHeight="22" dragEnabled="true" dragMoveEnabled="true" dropEnabled="true" click="confirmMinimumTodo()">
+						<mx:columns>
+							<mx:DataGridColumn dataField="text" headerText="★"  backgroundColor="#FFFFCC" fontSize="12" />
+						</mx:columns>
+					</mx:DataGrid>
+				</mx:Canvas>
+
+				<!-- リピートTodo -->
+				<mx:Canvas id="_reTodoList" width="100%" height="100%" >
+					<mx:DataGrid height="100%" width="100%" id="reData" dataProvider="{reTodoList}" rowHeight="22" dragEnabled="true" dropEnabled="true" click="confirmReTodo()">
+						<mx:columns>
+							<mx:DataGridColumn dataField="text" headerText="リピート"  backgroundColor="#FFFFCC" fontSize="12" />
+						</mx:columns>
+					</mx:DataGrid>
+				</mx:Canvas>
+
+			</mx:VDividedBox>
+		</mx:Panel>
+	</mx:DividedBox>
+</mx:Application>
